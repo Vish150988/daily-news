@@ -1,4 +1,12 @@
 import logging
+import sys
+from pathlib import Path
+
+# Vendor feedparser for mobile builds where pip install fails during packaging
+_vendor = Path(__file__).parent / "vendor"
+if str(_vendor) not in sys.path:
+    sys.path.insert(0, str(_vendor))
+
 import feedparser
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone

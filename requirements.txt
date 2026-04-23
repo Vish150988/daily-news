@@ -1,1 +1,2 @@
-# No external dependencies - feedparser is vendored for mobile compatibility
+# Dependencies are vendored in vendor/ for mobile compatibility.
+# Desktop users can manually install: pip install feedparser>=6.0.0
