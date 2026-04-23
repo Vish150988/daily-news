@@ -34,31 +34,52 @@ def main(page: ft.Page):
             if content.content is view:
                 return
             content.content = view
-            page.appbar = getattr(view, "appbar", None)
-            page.navigation_bar = getattr(view, "navigation_bar", None)
             page.update()
             if hasattr(view, "did_mount"):
                 view.did_mount()
 
+        def on_nav_change(e):
+            if e.control.selected_index == 0:
+                show_view(home)
+            elif e.control.selected_index == 1:
+                show_view(bookmarks_view)
+
+        # Single static navigation bar – never replaced, only updated.
+        # Dynamic replacement of page.navigation_bar inside event handlers
+        # caused taps to be swallowed on Android.
+        nav_bar = ft.NavigationBar(
+            bgcolor="#1c1c1f",
+            indicator_color="#e63946",
+            destinations=[
+                ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Home"),
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.BOOKMARK_OUTLINED, label="Saved"
+                ),
+            ],
+            selected_index=0,
+            on_change=on_nav_change,
+        )
+        page.navigation_bar = nav_bar
+
         def push_article(article: dict):
-            show_view(ArticleView(article_id=article["id"], on_back=pop_view))
+            # Hide nav bar on article page (best effort – some Flet builds ignore visible)
+            nav_bar.visible = False
+            show_view(ArticleView(article_id=article["id"], on_back=_go_home))
 
-        def push_bookmarks():
-            show_view(
-                BookmarksView(
-                    on_article_tap=push_article,
-                    on_go_home=pop_view,
-                )
-            )
-
-        def pop_view():
+        def _go_home():
+            nav_bar.visible = True
+            nav_bar.selected_index = 0
             show_view(home)
 
-        page.on_view_pop = lambda e: pop_view()
+        def _go_bookmarks():
+            nav_bar.visible = True
+            nav_bar.selected_index = 1
+            show_view(bookmarks_view)
 
-        home = HomeView(
+        home = HomeView(on_article_tap=push_article)
+        bookmarks_view = BookmarksView(
             on_article_tap=push_article,
-            on_bookmarks_tap=push_bookmarks,
+            on_go_home=_go_home,
         )
 
         page.controls.append(content)

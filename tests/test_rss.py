@@ -54,7 +54,8 @@ def test_fetch_feed_article_id_is_md5_of_url():
 def test_fetch_all_feeds_calls_upsert():
     from rss import fetch_all_feeds
     with patch("feedparser.parse", return_value=_mock_feed(_mock_entry())), \
-         patch("rss.upsert_articles") as mock_upsert:
+         patch("rss.upsert_articles") as mock_upsert, \
+         patch("rss.prune_articles"):
         count = fetch_all_feeds()
     assert mock_upsert.called
     assert count > 0

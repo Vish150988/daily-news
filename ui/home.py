@@ -10,7 +10,7 @@ from ui.components import NewsCard, CategoryChip, CATEGORIES, category_color
 
 
 class HomeView(ft.Column):
-    def __init__(self, on_article_tap: Callable, on_bookmarks_tap: Callable):
+    def __init__(self, on_article_tap: Callable):
         self._last_refresh: float = 0.0
         self._on_article_tap = on_article_tap
         self._active_category = "all"
@@ -30,19 +30,6 @@ class HomeView(ft.Column):
             icon_size=20,
             tooltip="Refresh feeds",
             on_click=lambda e: self.refresh(),
-        )
-
-        self.navigation_bar = ft.NavigationBar(
-            bgcolor="#1c1c1f",
-            indicator_color="#e63946",
-            destinations=[
-                ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Home"),
-                ft.NavigationBarDestination(icon=ft.Icons.BOOKMARK_OUTLINED, label="Saved"),
-            ],
-            selected_index=0,
-            on_change=lambda e: on_bookmarks_tap()
-            if e.control.selected_index == 1
-            else None,
         )
 
         super().__init__(

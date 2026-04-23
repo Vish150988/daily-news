@@ -18,24 +18,40 @@ class ArticleView(ft.Column):
             spacing=12,
         )
 
-        self.appbar = ft.AppBar(
-            bgcolor="#18181b",
-            color="#ffffff",
-            leading=ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                icon_color="#ffffff",
-                on_click=lambda e: on_back() if on_back else None,
+        self._bookmark_btn = ft.IconButton(
+            icon=ft.Icons.BOOKMARK_BORDER,
+            icon_color="#ffffff",
+        )
+
+        # Inline header instead of page.appbar – page.appbar dynamic updates
+        # are unreliable on Android packaged builds.
+        self._header = ft.Container(
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color="#ffffff",
+                        on_click=lambda e: on_back() if on_back else None,
+                    ),
+                    ft.Container(expand=True),
+                    self._bookmark_btn,
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
+            padding=ft.padding.symmetric(horizontal=8, vertical=8),
+            bgcolor="#18181b",
         )
 
         super().__init__(
             expand=True,
             controls=[
+                self._header,
+                ft.Divider(color="#333333"),
                 ft.Container(
                     content=self._content,
                     padding=ft.padding.symmetric(horizontal=16, vertical=8),
                     expand=True,
-                )
+                ),
             ],
         )
 
@@ -51,14 +67,14 @@ class ArticleView(ft.Column):
         color = category_color(article["category"])
         bookmarked = is_bookmarked(self._article_id)
 
-        self.appbar.actions = [
-            ft.IconButton(
-                icon=ft.Icons.BOOKMARK if bookmarked else ft.Icons.BOOKMARK_BORDER,
-                icon_color=color,
-                tooltip="Remove bookmark" if bookmarked else "Save article",
-                on_click=lambda e, a=article: self._toggle_bookmark(e, a),
-            )
-        ]
+        self._bookmark_btn.icon = (
+            ft.Icons.BOOKMARK if bookmarked else ft.Icons.BOOKMARK_BORDER
+        )
+        self._bookmark_btn.icon_color = color
+        self._bookmark_btn.tooltip = (
+            "Remove bookmark" if bookmarked else "Save article"
+        )
+        self._bookmark_btn.on_click = lambda e: self._toggle_bookmark()
 
         self._content.controls = [
             ft.Text(
@@ -105,20 +121,36 @@ class ArticleView(ft.Column):
                         "Open in Browser ↗",
                         bgcolor="#27272a",
                         color="#ffffff",
-                        on_click=lambda e: self.page.launch_url(article["url"]),
+                        on_click=lambda e: self._open_browser(article["url"]),
                     ),
                 ],
                 spacing=0,
             )
         self.page.update()
 
-    def _toggle_bookmark(self, e, article: dict):
+    def _open_browser(self, url: str):
+        """Try to open URL in browser; fallback to clipboard + snackbar."""
+        try:
+            self.page.launch_url(url)
+        except Exception:
+            pass
+        try:
+            self.page.set_clipboard(url)
+            self.page.open(
+                ft.SnackBar(
+                    content=ft.Text("Opening browser… URL copied to clipboard")
+                )
+            )
+        except Exception:
+            pass
+
+    def _toggle_bookmark(self):
         currently = is_bookmarked(self._article_id)
         if currently:
             remove_bookmark(self._article_id)
         else:
             add_bookmark(self._article_id)
-        e.control.icon = (
+        self._bookmark_btn.icon = (
             ft.Icons.BOOKMARK_BORDER if currently else ft.Icons.BOOKMARK
         )
         self.page.update()

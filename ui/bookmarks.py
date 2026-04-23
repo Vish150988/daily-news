@@ -18,35 +18,18 @@ class BookmarksView(ft.Column):
             padding=ft.padding.symmetric(horizontal=12, vertical=8),
         )
 
-        self.appbar = ft.AppBar(
-            title=ft.Text(
+        # Inline header instead of page.appbar
+        header = ft.Container(
+            content=ft.Text(
                 "Saved", color="#ffffff", weight=ft.FontWeight.BOLD, size=20
             ),
+            padding=ft.padding.symmetric(horizontal=16, vertical=16),
             bgcolor="#18181b",
-            color="#ffffff",
-            automatically_imply_leading=False,
-        )
-
-        self.navigation_bar = ft.NavigationBar(
-            bgcolor="#1c1c1f",
-            indicator_color="#e63946",
-            destinations=[
-                ft.NavigationBarDestination(
-                    icon=ft.Icons.HOME_OUTLINED, label="Home"
-                ),
-                ft.NavigationBarDestination(
-                    icon=ft.Icons.BOOKMARK, label="Saved"
-                ),
-            ],
-            selected_index=1,
-            on_change=lambda e: self._on_go_home()
-            if e.control.selected_index == 0 and self._on_go_home
-            else None,
         )
 
         super().__init__(
             expand=True,
-            controls=[self._list],
+            controls=[header, self._list],
         )
 
     def did_mount(self):
