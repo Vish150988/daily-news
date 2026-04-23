@@ -1,30 +1,35 @@
 # ui/article.py
 import threading
 import flet as ft
+from typing import Callable, Optional
 
 from storage import get_article, is_bookmarked, add_bookmark, remove_bookmark
 from reader import fetch_article_text
 from ui.components import category_color, category_label
 
 
-class ArticleView(ft.View):
-    def __init__(self, article_id: str):
+class ArticleView(ft.Column):
+    def __init__(self, article_id: str, on_back: Optional[Callable] = None):
         self._article_id = article_id
+        self._on_back = on_back
         self._content = ft.Column(
             scroll=ft.ScrollMode.AUTO,
             expand=True,
             spacing=12,
         )
 
-        super().__init__(
-            route=f"/article/{article_id}",
+        self.appbar = ft.AppBar(
             bgcolor="#18181b",
-            padding=0,
-            appbar=ft.AppBar(
-                bgcolor="#18181b",
-                color="#ffffff",
-                automatically_imply_leading=True,
+            color="#ffffff",
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK,
+                icon_color="#ffffff",
+                on_click=lambda e: on_back() if on_back else None,
             ),
+        )
+
+        super().__init__(
+            expand=True,
             controls=[
                 ft.Container(
                     content=self._content,
@@ -58,11 +63,15 @@ class ArticleView(ft.View):
         self._content.controls = [
             ft.Text(
                 f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
-                size=11, color=color, weight=ft.FontWeight.W_600,
+                size=11,
+                color=color,
+                weight=ft.FontWeight.W_600,
             ),
             ft.Text(
                 article["title"],
-                size=18, color="#ffffff", weight=ft.FontWeight.BOLD,
+                size=18,
+                color="#ffffff",
+                weight=ft.FontWeight.BOLD,
             ),
             ft.Divider(color="#333333"),
             ft.Container(
@@ -84,19 +93,23 @@ class ArticleView(ft.View):
                 text, size=14, color="#cccccc", selectable=True,
             )
         else:
-            self._content.controls[-1] = ft.Column([
-                ft.Text(
-                    article.get("excerpt", "No preview available."),
-                    size=14, color="#cccccc",
-                ),
-                ft.Container(height=16),
-                ft.ElevatedButton(
-                    "Open in Browser ↗",
-                    bgcolor="#27272a",
-                    color="#ffffff",
-                    on_click=lambda e: self.page.launch_url(article["url"]),
-                ),
-            ], spacing=0)
+            self._content.controls[-1] = ft.Column(
+                [
+                    ft.Text(
+                        article.get("excerpt", "No preview available."),
+                        size=14,
+                        color="#cccccc",
+                    ),
+                    ft.Container(height=16),
+                    ft.ElevatedButton(
+                        "Open in Browser ↗",
+                        bgcolor="#27272a",
+                        color="#ffffff",
+                        on_click=lambda e: self.page.launch_url(article["url"]),
+                    ),
+                ],
+                spacing=0,
+            )
         self.page.update()
 
     def _toggle_bookmark(self, e, article: dict):
@@ -105,5 +118,7 @@ class ArticleView(ft.View):
             remove_bookmark(self._article_id)
         else:
             add_bookmark(self._article_id)
-        e.control.icon = ft.Icons.BOOKMARK_BORDER if currently else ft.Icons.BOOKMARK
+        e.control.icon = (
+            ft.Icons.BOOKMARK_BORDER if currently else ft.Icons.BOOKMARK
+        )
         self.page.update()

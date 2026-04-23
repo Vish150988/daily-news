@@ -9,7 +9,7 @@ from rss import fetch_all_feeds
 from ui.components import NewsCard, CategoryChip, CATEGORIES, category_color
 
 
-class HomeView(ft.View):
+class HomeView(ft.Column):
     def __init__(self, on_article_tap: Callable, on_bookmarks_tap: Callable):
         self._last_refresh: float = 0.0
         self._on_article_tap = on_article_tap
@@ -32,33 +32,42 @@ class HomeView(ft.View):
             on_click=lambda e: self.refresh(),
         )
 
+        self.navigation_bar = ft.NavigationBar(
+            bgcolor="#1c1c1f",
+            indicator_color="#e63946",
+            destinations=[
+                ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Home"),
+                ft.NavigationBarDestination(icon=ft.Icons.BOOKMARK_OUTLINED, label="Saved"),
+            ],
+            selected_index=0,
+            on_change=lambda e: on_bookmarks_tap()
+            if e.control.selected_index == 1
+            else None,
+        )
+
         super().__init__(
-            route="/",
-            bgcolor="#18181b",
-            padding=0,
-            navigation_bar=ft.NavigationBar(
-                bgcolor="#1c1c1f",
-                indicator_color="#e63946",
-                destinations=[
-                    ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Home"),
-                    ft.NavigationBarDestination(icon=ft.Icons.BOOKMARK_OUTLINED, label="Saved"),
-                ],
-                selected_index=0,
-                on_change=lambda e: on_bookmarks_tap() if e.control.selected_index == 1 else None,
-            ),
+            expand=True,
             controls=[
                 ft.Container(
-                    content=ft.Column([
-                        ft.Row(
-                            [
-                                ft.Text("Daily News", size=22, weight=ft.FontWeight.BOLD, color="#ffffff"),
-                                ft.Row([self._status, self._refresh_btn], spacing=4),
-                            ],
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        ),
-                        self._hero,
-                        self._chips,
-                    ], spacing=10),
+                    content=ft.Column(
+                        [
+                            ft.Row(
+                                [
+                                    ft.Text(
+                                        "Daily News",
+                                        size=22,
+                                        weight=ft.FontWeight.BOLD,
+                                        color="#ffffff",
+                                    ),
+                                    ft.Row([self._status, self._refresh_btn], spacing=4),
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            ),
+                            self._hero,
+                            self._chips,
+                        ],
+                        spacing=10,
+                    ),
                     padding=ft.padding.symmetric(horizontal=12, vertical=10),
                     bgcolor="#18181b",
                 ),
@@ -93,17 +102,29 @@ class HomeView(ft.View):
         if articles:
             hero = articles[0]
             self._hero.content = ft.Container(
-                content=ft.Column([
-                    ft.Text(
-                        f"TOP STORY · {hero['source'].upper()}",
-                        size=9, color="rgba(255,255,255,0.75)", weight=ft.FontWeight.W_600,
-                    ),
-                    ft.Text(
-                        hero["title"],
-                        size=15, color="#ffffff", weight=ft.FontWeight.BOLD, max_lines=3,
-                    ),
-                    ft.Text(hero.get("published_at", "")[:10], size=9, color="rgba(255,255,255,0.6)"),
-                ], spacing=4),
+                content=ft.Column(
+                    [
+                        ft.Text(
+                            f"TOP STORY · {hero['source'].upper()}",
+                            size=9,
+                            color="rgba(255,255,255,0.75)",
+                            weight=ft.FontWeight.W_600,
+                        ),
+                        ft.Text(
+                            hero["title"],
+                            size=15,
+                            color="#ffffff",
+                            weight=ft.FontWeight.BOLD,
+                            max_lines=3,
+                        ),
+                        ft.Text(
+                            hero.get("published_at", "")[:10],
+                            size=9,
+                            color="rgba(255,255,255,0.6)",
+                        ),
+                    ],
+                    spacing=4,
+                ),
                 gradient=ft.LinearGradient(
                     begin=ft.Alignment(-1, -1),
                     end=ft.Alignment(1, 1),
@@ -117,7 +138,9 @@ class HomeView(ft.View):
             self._hero.content = None
 
         self._list.controls = [
-            NewsCard(a, on_tap=lambda e: self._on_article_tap(e.control.data))
+            NewsCard(
+                a, on_tap=lambda e: self._on_article_tap(e.control.data)
+            )
             for a in (articles[1:] if articles else [])
         ]
 

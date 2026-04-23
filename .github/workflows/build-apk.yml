@@ -43,6 +43,7 @@ jobs:
             --project "Daily News" \
             --org com.dailynews \
             --build-number ${{ github.run_number }} \
+            --verbose \
             --yes
 
       - name: Upload APK artifact

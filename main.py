@@ -1,5 +1,6 @@
 # main.py
 import sys
+import traceback
 from pathlib import Path
 
 # Vendor pure-Python deps for mobile builds (certifi, feedparser, sgmllib)
@@ -16,44 +17,78 @@ from ui.bookmarks import BookmarksView
 
 
 def main(page: ft.Page):
-    page.title = "Daily News"
-    page.theme_mode = ft.ThemeMode.DARK
-    page.bgcolor = "#18181b"
-    page.padding = 0
+    try:
+        page.title = "Daily News"
+        page.theme_mode = ft.ThemeMode.DARK
+        page.bgcolor = "#18181b"
+        page.padding = 0
 
-    init_db()
+        init_db()
 
-    def push_view(view: ft.View):
-        page.views.append(view)
-        page.update()
-        view.did_mount()
+        # Root container that hosts the current view content.
+        # We avoid page.views because ft.View stacks are known to render
+        # as blank screens in flet build apk (issue #2363).
+        content = ft.Container(expand=True, bgcolor="#18181b")
 
-    def push_article(article: dict):
-        push_view(ArticleView(article_id=article["id"]))
-
-    def push_bookmarks():
-        push_view(BookmarksView(
-            on_article_tap=push_article,
-            on_go_home=pop_view,
-        ))
-
-    def pop_view():
-        if len(page.views) > 1:
-            page.views.pop()
+        def show_view(view):
+            if content.content is view:
+                return
+            content.content = view
+            page.appbar = getattr(view, "appbar", None)
+            page.navigation_bar = getattr(view, "navigation_bar", None)
             page.update()
+            if hasattr(view, "did_mount"):
+                view.did_mount()
 
-    def view_pop(e):
-        pop_view()
+        def push_article(article: dict):
+            show_view(ArticleView(article_id=article["id"], on_back=pop_view))
 
-    page.on_view_pop = view_pop
+        def push_bookmarks():
+            show_view(
+                BookmarksView(
+                    on_article_tap=push_article,
+                    on_go_home=pop_view,
+                )
+            )
 
-    home = HomeView(
-        on_article_tap=push_article,
-        on_bookmarks_tap=push_bookmarks,
-    )
-    page.views.append(home)
-    page.update()
-    home.did_mount()
+        def pop_view():
+            show_view(home)
+
+        page.on_view_pop = lambda e: pop_view()
+
+        home = HomeView(
+            on_article_tap=push_article,
+            on_bookmarks_tap=push_bookmarks,
+        )
+
+        page.controls.append(content)
+        page.update()
+        show_view(home)
+
+    except Exception as exc:
+        page.controls.clear()
+        page.add(
+            ft.Column(
+                [
+                    ft.Text(
+                        "Startup error",
+                        size=18,
+                        color="#e63946",
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                    ft.Text(str(exc), color="#ffffff", selectable=True),
+                    ft.Text(
+                        traceback.format_exc(),
+                        color="#888888",
+                        size=10,
+                        selectable=True,
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+            )
+        )
+        page.update()
 
 
 ft.run(main)
