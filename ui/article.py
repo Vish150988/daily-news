@@ -3,7 +3,7 @@ import threading
 import flet as ft
 from typing import Callable, Optional
 
-from storage import get_article, is_bookmarked, add_bookmark, remove_bookmark
+from storage import get_article, is_bookmarked, add_bookmark, remove_bookmark, update_article_content
 from reader import fetch_article_text
 from ui.components import category_color, category_label
 
@@ -76,6 +76,15 @@ class ArticleView(ft.Column):
         )
         self._bookmark_btn.on_click = lambda e: self._toggle_bookmark()
 
+        # If full text is cached, show immediately (no progress ring)
+        cached = article.get("content")
+        if cached:
+            self._render_text(cached, article, color)
+            return
+
+        # Show excerpt immediately so the user has something to read
+        # while the full text loads in the background.
+        excerpt = article.get("excerpt", "").strip() or "Loading article…"
         self._content.controls = [
             ft.Text(
                 f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
@@ -90,6 +99,7 @@ class ArticleView(ft.Column):
                 weight=ft.FontWeight.BOLD,
             ),
             ft.Divider(color="#333333"),
+            ft.Text(excerpt, size=14, color="#cccccc", italic=True),
             ft.Container(
                 content=ft.ProgressRing(color=color, width=24, height=24),
                 alignment=ft.Alignment(0, 0),
@@ -98,25 +108,24 @@ class ArticleView(ft.Column):
         ]
         self.page.update()
 
-        threading.Thread(target=self._fetch_text, args=(article,), daemon=True).start()
+        threading.Thread(
+            target=self._fetch_text, args=(article, color), daemon=True
+        ).start()
 
-    def _fetch_text(self, article: dict):
+    def _fetch_text(self, article: dict, color: str):
         text = fetch_article_text(article["url"])
         if not self.page:  # view was popped while fetching
             return
         if text:
-            self._content.controls[-1] = ft.Text(
-                text, size=14, color="#cccccc", selectable=True,
-            )
+            # Cache for instant load next time
+            update_article_content(self._article_id, text)
+            self._render_text(text, article, color)
         else:
+            # Replace progress ring with "Open in Browser" fallback,
+            # keeping the excerpt above it.
             self._content.controls[-1] = ft.Column(
                 [
-                    ft.Text(
-                        article.get("excerpt", "No preview available."),
-                        size=14,
-                        color="#cccccc",
-                    ),
-                    ft.Container(height=16),
+                    ft.Container(height=8),
                     ft.ElevatedButton(
                         "Open in Browser ↗",
                         bgcolor="#27272a",
@@ -126,6 +135,26 @@ class ArticleView(ft.Column):
                 ],
                 spacing=0,
             )
+            self.page.update()
+
+    def _render_text(self, text: str, article: dict, color: str):
+        """Render the full article text."""
+        self._content.controls = [
+            ft.Text(
+                f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
+                size=11,
+                color=color,
+                weight=ft.FontWeight.W_600,
+            ),
+            ft.Text(
+                article["title"],
+                size=18,
+                color="#ffffff",
+                weight=ft.FontWeight.BOLD,
+            ),
+            ft.Divider(color="#333333"),
+            ft.Text(text, size=14, color="#cccccc", selectable=True),
+        ]
         self.page.update()
 
     def _open_browser(self, url: str):

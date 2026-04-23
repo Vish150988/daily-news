@@ -3,6 +3,18 @@ import urllib.request
 import urllib.parse
 from typing import Optional
 
+# Keywords that indicate a line is an ad, nav, or non-content
+_JUNK_KEYWORDS = [
+    "register now", "tickets are going fast", "sign up", "subscribe",
+    "newsletter", "cookie policy", "privacy policy", "terms of service",
+    "terms of use", "access denied", "403 forbidden", "not found",
+    "page cannot be found", "all rights reserved", "copyright",
+    "follow us on", "share this", "related articles", "read more",
+    "click here to", "advertisement", "sponsored", "promoted",
+    "close", "skip to content", "submit", "search", "menu",
+    "home", "about us", "contact us", "careers", "log in", "sign in",
+]
+
 
 def fetch_article_text(url: str) -> Optional[str]:
     """Fetch and extract clean article text from a URL.
@@ -44,7 +56,7 @@ def _jina_extract(url: str) -> Optional[str]:
         jina_url,
         headers={"User-Agent": "DailyNews/1.0"},
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, timeout=8) as resp:
         text = resp.read().decode("utf-8", errors="ignore")
 
     if not text or len(text.strip()) < 200:
@@ -60,34 +72,51 @@ def _jina_extract(url: str) -> Optional[str]:
     # Strip Jina header metadata
     text = _strip_jina_header(text)
 
-    # Clean markdown link syntax: [text](url) -> text, ![alt](url) -> alt
+    # Remove markdown images and links: ![alt](url) and [alt](url)
     text = re.sub(r"!?\[([^\]]+)\]\([^)]+\)", r"\1", text)
 
-    # Remove lines that are just URLs or short nav items
+    # Remove markdown headers (# Header)
+    text = re.sub(r"^#+\s*.+\n", "", text, flags=re.MULTILINE)
+
     lines = []
     for line in text.splitlines():
         stripped = line.strip()
-        if len(stripped) < 3:
+
+        # Skip empty/very short lines
+        if len(stripped) < 25:
             continue
-        if stripped.startswith(("http://", "https://")):
+
+        # Skip bullet points (nav links)
+        if re.match(r"^[\*\-\+]\s+", stripped):
             continue
-        if stripped in ("Close", "Skip to content", "Submit", "Search"):
+
+        # Skip lines that are just URLs
+        if re.match(r"^https?://", stripped):
             continue
+
+        # Skip junk keywords
+        lower_line = stripped.lower()
+        if any(kw in lower_line for kw in _JUNK_KEYWORDS):
+            continue
+
+        # Skip lines with many caps (often nav/button text)
+        if stripped.isupper() and len(stripped) < 60:
+            continue
+
         lines.append(stripped)
 
-    cleaned = "\n".join(lines)
+    cleaned = "\n\n".join(lines)
     return cleaned.strip() if len(cleaned) > 200 else None
 
 
 def _strip_jina_header(text: str) -> str:
     """Remove Jina AI reader header metadata."""
-    for marker in ("Markdown Content:", "Markdown Content"):
+    for marker in ("Markdown Content:\n", "Markdown Content:", "Markdown Content"):
         idx = text.find(marker)
         if idx != -1:
             text = text[idx + len(marker):]
-            text = text.lstrip(":\n ")
             break
-    return text
+    return text.strip()
 
 
 def _stdlib_extract(url: str) -> Optional[str]:
@@ -97,8 +126,9 @@ def _stdlib_extract(url: str) -> Optional[str]:
             url,
             headers={"User-Agent": "Mozilla/5.0 (compatible; DailyNewsApp/1.0)"},
         )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            html = resp.read().decode("utf-8", errors="ignore")
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            # Limit to 500KB to avoid huge pages
+            html = resp.read(500_000).decode("utf-8", errors="ignore")
 
         # Strip common non-content blocks
         html = re.sub(

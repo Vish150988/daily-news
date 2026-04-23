@@ -17,6 +17,10 @@ def _conn() -> sqlite3.Connection:
     return conn
 
 
+def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    return any(row[1] == column for row in conn.execute(f"PRAGMA table_info({table})").fetchall())
+
+
 def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with closing(_conn()) as conn:
@@ -36,6 +40,8 @@ def init_db():
                 saved_at TEXT NOT NULL
             );
         """)
+        if not _has_column(conn, "articles", "content"):
+            conn.execute("ALTER TABLE articles ADD COLUMN content TEXT")
 
 
 def make_article_id(url: str) -> str:
@@ -122,6 +128,15 @@ def get_bookmarks() -> List[Dict]:
                 """
             ).fetchall()
     return [dict(r) for r in rows]
+
+
+def update_article_content(article_id: str, content: str):
+    with closing(_conn()) as conn:
+        with conn:
+            conn.execute(
+                "UPDATE articles SET content = ? WHERE id = ?",
+                (content, article_id),
+            )
 
 
 def prune_articles(keep: int = 200):
