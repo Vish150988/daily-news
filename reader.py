@@ -94,6 +94,8 @@ def _jina_extract(url: str) -> Optional[str]:
     text = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", text)
     # Convert markdown links to just their text
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    # Remove any raw HTML tags Jina sometimes leaves behind
+    text = re.sub(r"</?(?:p|div|span|br|hr|h[1-6]|strong|em|b|i|u|a|img|ul|ol|li|blockquote|code|pre|table|tr|td|th)[^>]*>", "", text, flags=re.IGNORECASE)
 
     lines = []
     for line in text.splitlines():

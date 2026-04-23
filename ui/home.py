@@ -91,7 +91,7 @@ class HomeView(ft.Column):
 
     def _load_cached(self):
         cat = None if self._active_category == "all" else self._active_category
-        articles = get_articles(cat, limit=100)
+        articles = get_articles(cat, limit=30)
         self._render(articles)
 
     def _render(self, articles: List[Dict]):
@@ -160,4 +160,6 @@ class HomeView(ft.Column):
         threading.Thread(target=_do, daemon=True).start()
 
     def refresh(self):
+        # Bypass the 5-minute throttle so manual refresh always works
+        self._last_refresh = 0
         self._refresh_background()
