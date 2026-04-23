@@ -24,17 +24,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Flutter (stable)
-        uses: subosito/flutter-action@v2
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Install Flet build tools
+        run: pip install "flet[build]==0.84.0"
+
+      - name: Cache Flet-managed Flutter
+        uses: actions/cache@v4
         with:
-          channel: stable
-          cache: true
-
-      - name: Install Flet build tools and dev deps
-        run: pip install "flet[build]==0.84.0" pytest
-
-      - name: Accept Android licenses
-        run: yes | flutter doctor --android-licenses || true
+          path: ~/.flet
+          key: flet-0.84.0-flutter
 
       - name: Build APK
         run: |
