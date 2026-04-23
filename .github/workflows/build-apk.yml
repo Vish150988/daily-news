@@ -30,14 +30,11 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install Python dependencies
-        run: pip install "flet[build]==0.84.0" feedparser trafilatura
+      - name: Install Flet build tools and dev deps
+        run: pip install "flet[build]==0.84.0" pytest
 
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
-
-      - name: Verify Flutter setup
-        run: flutter doctor -v
 
       - name: Build APK
         run: |
