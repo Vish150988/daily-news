@@ -1,4 +1,12 @@
 # main.py
+import sys
+from pathlib import Path
+
+# Vendor pure-Python deps for mobile builds (certifi, feedparser, sgmllib)
+_vendor = Path(__file__).parent / "vendor"
+if str(_vendor) not in sys.path:
+    sys.path.insert(0, str(_vendor))
+
 import flet as ft
 
 from storage import init_db
