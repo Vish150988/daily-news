@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -15,7 +16,7 @@ def _conn() -> sqlite3.Connection:
 
 def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with _conn() as conn:
+    with closing(_conn()) as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS articles (
                 id TEXT PRIMARY KEY,
@@ -41,91 +42,99 @@ def make_article_id(url: str) -> str:
 # Upsert with first-write-wins for source and category: these fields are intentionally
 # omitted from the ON CONFLICT UPDATE clause to preserve the original feed provenance.
 def upsert_articles(articles: List[Dict]):
-    with _conn() as conn:
-        conn.executemany(
-            """
-            INSERT INTO articles (id, title, url, source, category, excerpt, published_at, fetched_at)
-            VALUES (:id, :title, :url, :source, :category, :excerpt, :published_at, :fetched_at)
-            ON CONFLICT(url) DO UPDATE SET
-                title = excluded.title,
-                excerpt = excluded.excerpt,
-                published_at = excluded.published_at,
-                fetched_at = excluded.fetched_at
-            """,
-            articles,
-        )
+    with closing(_conn()) as conn:
+        with conn:
+            conn.executemany(
+                """
+                INSERT INTO articles (id, title, url, source, category, excerpt, published_at, fetched_at)
+                VALUES (:id, :title, :url, :source, :category, :excerpt, :published_at, :fetched_at)
+                ON CONFLICT(url) DO UPDATE SET
+                    title = excluded.title,
+                    excerpt = excluded.excerpt,
+                    published_at = excluded.published_at,
+                    fetched_at = excluded.fetched_at
+                """,
+                articles,
+            )
 
 
 def get_articles(category: Optional[str] = None, limit: int = 100) -> List[Dict]:
-    with _conn() as conn:
-        if category and category != "all":
-            rows = conn.execute(
-                "SELECT * FROM articles WHERE category=? ORDER BY published_at DESC LIMIT ?",
-                (category, limit),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM articles ORDER BY published_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
+    with closing(_conn()) as conn:
+        with conn:
+            if category and category != "all":
+                rows = conn.execute(
+                    "SELECT * FROM articles WHERE category=? ORDER BY published_at DESC LIMIT ?",
+                    (category, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM articles ORDER BY published_at DESC LIMIT ?",
+                    (limit,),
+                ).fetchall()
     return [dict(r) for r in rows]
 
 
 def get_article(article_id: str) -> Optional[Dict]:
-    with _conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM articles WHERE id=?", (article_id,)
-        ).fetchone()
+    with closing(_conn()) as conn:
+        with conn:
+            row = conn.execute(
+                "SELECT * FROM articles WHERE id=?", (article_id,)
+            ).fetchone()
     return dict(row) if row else None
 
 
 def add_bookmark(article_id: str):
-    with _conn() as conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO bookmarks (article_id, saved_at) VALUES (?, ?)",
-            (article_id, datetime.now(timezone.utc).isoformat()),
-        )
+    with closing(_conn()) as conn:
+        with conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO bookmarks (article_id, saved_at) VALUES (?, ?)",
+                (article_id, datetime.now(timezone.utc).isoformat()),
+            )
 
 
 def remove_bookmark(article_id: str):
-    with _conn() as conn:
-        conn.execute("DELETE FROM bookmarks WHERE article_id=?", (article_id,))
+    with closing(_conn()) as conn:
+        with conn:
+            conn.execute("DELETE FROM bookmarks WHERE article_id=?", (article_id,))
 
 
 def is_bookmarked(article_id: str) -> bool:
-    with _conn() as conn:
-        row = conn.execute(
-            "SELECT 1 FROM bookmarks WHERE article_id=?", (article_id,)
-        ).fetchone()
+    with closing(_conn()) as conn:
+        with conn:
+            row = conn.execute(
+                "SELECT 1 FROM bookmarks WHERE article_id=?", (article_id,)
+            ).fetchone()
     return row is not None
 
 
 def get_bookmarks() -> List[Dict]:
-    with _conn() as conn:
-        rows = conn.execute(
-            """
-            SELECT a.*, b.saved_at AS bookmark_saved_at
-            FROM bookmarks b
-            JOIN articles a ON b.article_id = a.id
-            ORDER BY b.saved_at DESC
-            """
-        ).fetchall()
+    with closing(_conn()) as conn:
+        with conn:
+            rows = conn.execute(
+                """
+                SELECT a.*, b.saved_at AS bookmark_saved_at
+                FROM bookmarks b
+                JOIN articles a ON b.article_id = a.id
+                ORDER BY b.saved_at DESC
+                """
+            ).fetchall()
     return [dict(r) for r in rows]
 
 
 def prune_articles(keep: int = 200):
-    with _conn() as conn:
-        categories = [r[0] for r in conn.execute(
-            "SELECT DISTINCT category FROM articles"
-        ).fetchall()]
-        for cat in categories:
-            conn.execute(
-                """
-                DELETE FROM articles WHERE id IN (
-                    SELECT id FROM articles WHERE category=?
-                    ORDER BY published_at DESC
-                    LIMIT -1 OFFSET ?
+    with closing(_conn()) as conn:
+        with conn:
+            categories = [r[0] for r in conn.execute(
+                "SELECT DISTINCT category FROM articles"
+            ).fetchall()]
+            for cat in categories:
+                conn.execute(
+                    """
+                    DELETE FROM articles WHERE id IN (
+                        SELECT id FROM articles WHERE category=?
+                        ORDER BY published_at DESC
+                        LIMIT -1 OFFSET ?
+                    )
+                    """,
+                    (cat, keep),
                 )
-                """,
-                (cat, keep),
-            )

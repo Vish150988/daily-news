@@ -1,6 +1,5 @@
 # ui/article.py
 import threading
-import webbrowser
 import flet as ft
 
 from storage import get_article, is_bookmarked, add_bookmark, remove_bookmark
@@ -78,6 +77,8 @@ class ArticleView(ft.View):
 
     def _fetch_text(self, article: dict):
         text = fetch_article_text(article["url"])
+        if not self.page:  # view was popped while fetching
+            return
         if text:
             self._content.controls[-1] = ft.Text(
                 text, size=14, color="#cccccc", selectable=True,
@@ -93,7 +94,7 @@ class ArticleView(ft.View):
                     "Open in Browser ↗",
                     bgcolor="#27272a",
                     color="#ffffff",
-                    on_click=lambda e: webbrowser.open(article["url"]),
+                    on_click=lambda e: self.page.launch_url(article["url"]),
                 ),
             ], spacing=0)
         self.page.update()

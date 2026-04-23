@@ -3,7 +3,7 @@ import feedparser
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import List, Dict
-from storage import upsert_articles, make_article_id
+from storage import upsert_articles, make_article_id, prune_articles
 
 _MAX_ENTRIES_PER_FEED = 30  # cap per fetch to avoid DB bloat
 
@@ -94,4 +94,5 @@ def fetch_all_feeds() -> int:
                 logging.warning("Feed fetch task failed: %s", exc)
     if all_articles:
         upsert_articles(all_articles)
+        prune_articles()  # keep cache bounded to 200 articles per category
     return len(all_articles)

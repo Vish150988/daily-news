@@ -1,5 +1,6 @@
 # ui/home.py
 import threading
+from datetime import datetime, timezone
 import flet as ft
 from typing import Callable, List, Dict
 
@@ -10,6 +11,7 @@ from ui.components import NewsCard, CategoryChip, CATEGORIES, category_color
 
 class HomeView(ft.View):
     def __init__(self, on_article_tap: Callable, on_bookmarks_tap: Callable):
+        self._last_refresh: float = 0.0
         self._on_article_tap = on_article_tap
         self._active_category = "all"
 
@@ -123,11 +125,16 @@ class HomeView(ft.View):
             self.page.update()
 
     def _refresh_background(self):
+        now = datetime.now(timezone.utc).timestamp()
+        if now - self._last_refresh < 300:  # skip if refreshed within 5 minutes
+            return
+
         def _do():
             self._status.value = "↻ Refreshing"
             if self.page:
                 self.page.update()
             count = fetch_all_feeds()
+            self._last_refresh = datetime.now(timezone.utc).timestamp()
             self._status.value = f"{count} articles fetched" if count else "Offline"
             self._load_cached()
 
