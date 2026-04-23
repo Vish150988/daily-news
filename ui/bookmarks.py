@@ -2,6 +2,7 @@
 import flet as ft
 from typing import Callable
 
+import theme
 from storage import get_bookmarks, remove_bookmark
 from ui.components import NewsCard
 
@@ -15,16 +16,16 @@ class BookmarksView(ft.Column):
         self._list = ft.ListView(
             expand=True,
             spacing=8,
-            padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            padding=ft.Padding.symmetric(horizontal=12, vertical=8),
         )
 
         # Inline header instead of page.appbar
         header = ft.Container(
             content=ft.Text(
-                "Saved", color="#ffffff", weight=ft.FontWeight.BOLD, size=20
+                "Saved", color=theme.color("text_primary"), weight=ft.FontWeight.BOLD, size=20
             ),
-            padding=ft.padding.symmetric(horizontal=16, vertical=16),
-            bgcolor="#18181b",
+            padding=ft.Padding.symmetric(horizontal=16, vertical=16),
+            bgcolor=theme.color("header_bg"),
         )
 
         super().__init__(
@@ -45,11 +46,11 @@ class BookmarksView(ft.Column):
                             ft.Icon(
                                 ft.Icons.BOOKMARK_BORDER,
                                 size=52,
-                                color="#444444",
+                                color=theme.color("text_muted"),
                             ),
                             ft.Text(
                                 "No saved articles yet.",
-                                color="#888888",
+                                color=theme.color("text_muted"),
                                 size=14,
                             ),
                         ],

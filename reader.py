@@ -8,11 +8,29 @@ _JUNK_KEYWORDS = [
     "register now", "tickets are going fast", "sign up", "subscribe",
     "newsletter", "cookie policy", "privacy policy", "terms of service",
     "terms of use", "access denied", "403 forbidden", "not found",
-    "page cannot be found", "all rights reserved", "copyright",
-    "follow us on", "share this", "related articles", "read more",
-    "click here to", "advertisement", "sponsored", "promoted",
-    "close", "skip to content", "submit", "search", "menu",
-    "home", "about us", "contact us", "careers", "log in", "sign in",
+    "page cannot be found", "page not found", "all rights reserved",
+    "copyright", "follow us on", "share this", "related articles",
+    "read more", "click here to", "advertisement", "sponsored",
+    "promoted", "close", "skip to content", "submit", "search",
+    "menu", "home", "about us", "contact us", "careers", "log in",
+    "sign in", "credit:", "getty images", "loading comments",
+    "most read", "trending", "popular", "you may also like",
+    "recommended for you", "editor's pick", "loading loading",
+    "has been separating the signal from the noise",
+]
+
+_BIO_KEYWORDS = [
+    "is a reporter", "is a writer", "is a journalist", "is an editor",
+    "is a senior", "is a contributing", "previously written for",
+    "has written for", "has previously", "master of arts",
+    "bachelor's degree", "master's degree", "phd in", "dr.",
+    "professor of", "is a correspondent", "is a columnist",
+]
+
+_SOCIAL_DOMAINS = [
+    "bsky.app", "mastodon.social", "facebook.com", "youtube.com",
+    "twitter.com", "x.com", "instagram.com", "linkedin.com",
+    "reddit.com", "tiktok.com",
 ]
 
 
@@ -72,11 +90,10 @@ def _jina_extract(url: str) -> Optional[str]:
     # Strip Jina header metadata
     text = _strip_jina_header(text)
 
-    # Remove markdown images and links: ![alt](url) and [alt](url)
-    text = re.sub(r"!?\[([^\]]+)\]\([^)]+\)", r"\1", text)
-
-    # Remove markdown headers (# Header)
-    text = re.sub(r"^#+\s*.+\n", "", text, flags=re.MULTILINE)
+    # Remove markdown images completely
+    text = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", text)
+    # Convert markdown links to just their text
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
 
     lines = []
     for line in text.splitlines():
@@ -90,13 +107,34 @@ def _jina_extract(url: str) -> Optional[str]:
         if re.match(r"^[\*\-\+]\s+", stripped):
             continue
 
+        # Skip numbered list items (Most Read, etc.)
+        if re.match(r"^\d+\.\s+", stripped):
+            continue
+
         # Skip lines that are just URLs
         if re.match(r"^https?://", stripped):
+            continue
+
+        # Skip image caption lines
+        if re.match(r"^Image\s+\d+:", stripped, re.IGNORECASE):
+            continue
+
+        # Skip cookie consent walls
+        cookie_count = stripped.lower().count("cookie")
+        if cookie_count >= 2:
             continue
 
         # Skip junk keywords
         lower_line = stripped.lower()
         if any(kw in lower_line for kw in _JUNK_KEYWORDS):
+            continue
+
+        # Skip author bios
+        if any(kw in lower_line for kw in _BIO_KEYWORDS):
+            continue
+
+        # Skip social media / footer links
+        if any(domain in lower_line for domain in _SOCIAL_DOMAINS):
             continue
 
         # Skip lines with many caps (often nav/button text)

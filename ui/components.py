@@ -1,6 +1,7 @@
-# ui/components.py
 import flet as ft
 from typing import Callable, Optional, Dict
+
+import theme
 
 CATEGORY_COLORS: Dict[str, str] = {
     "world":       "#e63946",
@@ -50,16 +51,16 @@ def NewsCard(article: Dict, on_tap: Optional[Callable] = None) -> ft.Container:
                 ft.Text(
                     article["title"],
                     size=13,
-                    color="#ffffff",
+                    color=theme.color("text_primary"),
                     weight=ft.FontWeight.W_600,
                     max_lines=3,
                     overflow=ft.TextOverflow.ELLIPSIS,
                 ),
-                ft.Text(pub, size=10, color="#888888"),
+                ft.Text(pub, size=10, color=theme.color("text_muted")),
             ],
             spacing=4,
         ),
-        bgcolor="#27272a",
+        bgcolor=theme.color("card_bg"),
         border_radius=8,
         padding=12,
         on_click=on_tap,
@@ -73,12 +74,12 @@ def CategoryChip(label: str, category: str, active: bool, on_tap: Optional[Calla
         content=ft.Text(
             label,
             size=11,
-            color="#ffffff" if active else "#888888",
+            color=theme.color("text_primary") if active else theme.color("chip_inactive_text"),
             weight=ft.FontWeight.W_600,
         ),
-        bgcolor=color if active else "#27272a",
+        bgcolor=color if active else theme.color("chip_inactive_bg"),
         border_radius=12,
-        padding=ft.padding.symmetric(horizontal=12, vertical=4),
+        padding=ft.Padding.symmetric(horizontal=12, vertical=4),
         on_click=on_tap,
         data=category,
     )

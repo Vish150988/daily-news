@@ -4,32 +4,41 @@ from datetime import datetime, timezone
 import flet as ft
 from typing import Callable, List, Dict
 
+import theme
 from storage import get_articles
 from rss import fetch_all_feeds
 from ui.components import NewsCard, CategoryChip, CATEGORIES, category_color
 
 
 class HomeView(ft.Column):
-    def __init__(self, on_article_tap: Callable):
+    def __init__(self, on_article_tap: Callable, on_theme_toggle: Callable = None):
         self._last_refresh: float = 0.0
         self._on_article_tap = on_article_tap
         self._active_category = "all"
 
-        self._status = ft.Text("", size=10, color="#888888")
+        self._status = ft.Text("", size=10, color=theme.color("text_muted"))
         self._hero = ft.Container()
         self._chips = ft.Row(scroll=ft.ScrollMode.AUTO, spacing=6)
         self._list = ft.ListView(
             expand=True,
             spacing=8,
-            padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            padding=ft.Padding.symmetric(horizontal=12, vertical=8),
         )
 
         self._refresh_btn = ft.IconButton(
             icon=ft.Icons.REFRESH,
-            icon_color="#888888",
+            icon_color=theme.color("text_muted"),
             icon_size=20,
             tooltip="Refresh feeds",
             on_click=lambda e: self.refresh(),
+        )
+
+        self._theme_btn = ft.IconButton(
+            icon=ft.Icons.WB_SUNNY if theme.mode() == "dark" else ft.Icons.NIGHTLIGHT_ROUND,
+            icon_color=theme.color("text_primary"),
+            icon_size=20,
+            tooltip="Toggle theme",
+            on_click=lambda e: on_theme_toggle() if on_theme_toggle else None,
         )
 
         super().__init__(
@@ -44,9 +53,9 @@ class HomeView(ft.Column):
                                         "Daily News",
                                         size=22,
                                         weight=ft.FontWeight.BOLD,
-                                        color="#ffffff",
+                                        color=theme.color("text_primary"),
                                     ),
-                                    ft.Row([self._status, self._refresh_btn], spacing=4),
+                                    ft.Row([self._status, self._refresh_btn, self._theme_btn], spacing=4),
                                 ],
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             ),
@@ -55,8 +64,8 @@ class HomeView(ft.Column):
                         ],
                         spacing=10,
                     ),
-                    padding=ft.padding.symmetric(horizontal=12, vertical=10),
-                    bgcolor="#18181b",
+                    padding=ft.Padding.symmetric(horizontal=12, vertical=10),
+                    bgcolor=theme.color("page_bg"),
                 ),
                 self._list,
             ],
@@ -94,20 +103,20 @@ class HomeView(ft.Column):
                         ft.Text(
                             f"TOP STORY · {hero['source'].upper()}",
                             size=9,
-                            color="rgba(255,255,255,0.75)",
+                            color=theme.color("hero_text"),
                             weight=ft.FontWeight.W_600,
                         ),
                         ft.Text(
                             hero["title"],
                             size=15,
-                            color="#ffffff",
+                            color=theme.color("text_primary"),
                             weight=ft.FontWeight.BOLD,
                             max_lines=3,
                         ),
                         ft.Text(
                             hero.get("published_at", "")[:10],
                             size=9,
-                            color="rgba(255,255,255,0.6)",
+                            color=theme.color("hero_date"),
                         ),
                     ],
                     spacing=4,

@@ -3,6 +3,7 @@ import threading
 import flet as ft
 from typing import Callable, Optional
 
+import theme
 from storage import get_article, is_bookmarked, add_bookmark, remove_bookmark, update_article_content
 from reader import fetch_article_text
 from ui.components import category_color, category_label
@@ -20,7 +21,7 @@ class ArticleView(ft.Column):
 
         self._bookmark_btn = ft.IconButton(
             icon=ft.Icons.BOOKMARK_BORDER,
-            icon_color="#ffffff",
+            icon_color=theme.color("text_primary"),
         )
 
         # Inline header instead of page.appbar – page.appbar dynamic updates
@@ -30,7 +31,7 @@ class ArticleView(ft.Column):
                 [
                     ft.IconButton(
                         icon=ft.Icons.ARROW_BACK,
-                        icon_color="#ffffff",
+                        icon_color=theme.color("text_primary"),
                         on_click=lambda e: on_back() if on_back else None,
                     ),
                     ft.Container(expand=True),
@@ -38,18 +39,18 @@ class ArticleView(ft.Column):
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            padding=ft.padding.symmetric(horizontal=8, vertical=8),
-            bgcolor="#18181b",
+            padding=ft.Padding.symmetric(horizontal=8, vertical=8),
+            bgcolor=theme.color("header_bg"),
         )
 
         super().__init__(
             expand=True,
             controls=[
                 self._header,
-                ft.Divider(color="#333333"),
+                ft.Divider(color=theme.color("divider")),
                 ft.Container(
                     content=self._content,
-                    padding=ft.padding.symmetric(horizontal=16, vertical=8),
+                    padding=ft.Padding.symmetric(horizontal=16, vertical=8),
                     expand=True,
                 ),
             ],
@@ -59,7 +60,7 @@ class ArticleView(ft.Column):
         article = get_article(self._article_id)
         if not article:
             self._content.controls = [
-                ft.Text("Article not found.", color="#888888", size=14)
+                ft.Text("Article not found.", color=theme.color("text_muted"), size=14)
             ]
             self.page.update()
             return
@@ -95,11 +96,11 @@ class ArticleView(ft.Column):
             ft.Text(
                 article["title"],
                 size=18,
-                color="#ffffff",
+                color=theme.color("text_primary"),
                 weight=ft.FontWeight.BOLD,
             ),
-            ft.Divider(color="#333333"),
-            ft.Text(excerpt, size=14, color="#cccccc", italic=True),
+            ft.Divider(color=theme.color("divider")),
+            ft.Text(excerpt, size=14, color=theme.color("text_secondary"), italic=True),
             ft.Container(
                 content=ft.ProgressRing(color=color, width=24, height=24),
                 alignment=ft.Alignment(0, 0),
@@ -128,8 +129,8 @@ class ArticleView(ft.Column):
                     ft.Container(height=8),
                     ft.ElevatedButton(
                         "Open in Browser ↗",
-                        bgcolor="#27272a",
-                        color="#ffffff",
+                        bgcolor=theme.color("button_bg"),
+                        color=theme.color("text_primary"),
                         on_click=lambda e: self._open_browser(article["url"]),
                     ),
                 ],
@@ -138,7 +139,13 @@ class ArticleView(ft.Column):
             self.page.update()
 
     def _render_text(self, text: str, article: dict, color: str):
-        """Render the full article text."""
+        """Render the full article text as separate paragraph controls."""
+        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+        text_controls = [
+            ft.Text(p, size=14, color=theme.color("text_secondary"), selectable=True)
+            for p in paragraphs
+        ]
+
         self._content.controls = [
             ft.Text(
                 f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
@@ -149,11 +156,11 @@ class ArticleView(ft.Column):
             ft.Text(
                 article["title"],
                 size=18,
-                color="#ffffff",
+                color=theme.color("text_primary"),
                 weight=ft.FontWeight.BOLD,
             ),
-            ft.Divider(color="#333333"),
-            ft.Text(text, size=14, color="#cccccc", selectable=True),
+            ft.Divider(color=theme.color("divider")),
+            *text_controls,
         ]
         self.page.update()
 
