@@ -39,8 +39,9 @@ def fetch_article_text(url: str) -> Optional[str]:
 
     Tiers:
       1. trafilatura (desktop, best quality)
-      2. Jina AI reader API (mobile, fast, good quality)
-      3. stdlib regex extractor (offline fallback)
+      2. boilerpy3 (mobile primary – pure Python, fast, no extra API hop)
+      3. Jina AI reader API (fallback)
+      4. stdlib regex extractor (final fallback)
     """
     # 1. Desktop: trafilatura
     try:
@@ -57,14 +58,56 @@ def fetch_article_text(url: str) -> Optional[str]:
     except Exception:
         pass
 
-    # 2. Mobile: Jina AI reader (fast, high-quality extraction)
+    # 2. Mobile primary: boilerpy3 (pure Python, no API dependency)
+    try:
+        return _boilerpy_extract(url)
+    except Exception:
+        pass
+
+    # 3. Fallback: Jina AI reader
     try:
         return _jina_extract(url)
     except Exception:
         pass
 
-    # 3. Fallback: pure-Python extractor
+    # 4. Final fallback: pure-Python extractor
     return _stdlib_extract(url)
+
+
+def _boilerpy_extract(url: str) -> Optional[str]:
+    """Use boilerpy3 (pure-Python Boilerpipe port) to extract article text."""
+    from boilerpy3 import extractors
+
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Mozilla/5.0 (compatible; DailyNewsApp/1.0)"},
+    )
+    with urllib.request.urlopen(req, timeout=8) as resp:
+        html = resp.read().decode("utf-8", errors="ignore")
+
+    extractor = extractors.ArticleExtractor()
+    text = extractor.get_content(html)
+
+    if not text or len(text.strip()) < 200:
+        return None
+
+    # Post-process: strip junk lines boilerpy3 sometimes leaves in
+    lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if len(stripped) < 3:
+            continue
+        lower_line = stripped.lower()
+        if any(kw in lower_line for kw in _JUNK_KEYWORDS):
+            continue
+        if any(kw in lower_line for kw in _BIO_KEYWORDS):
+            continue
+        if any(domain in lower_line for domain in _SOCIAL_DOMAINS):
+            continue
+        lines.append(stripped)
+
+    cleaned = "\n\n".join(lines)
+    return cleaned.strip() if len(cleaned) > 200 else None
 
 
 def _jina_extract(url: str) -> Optional[str]:

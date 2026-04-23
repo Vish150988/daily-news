@@ -15,14 +15,14 @@ class BookmarksView(ft.Column):
         self._on_go_home = on_go_home
         self._list = ft.ListView(
             expand=True,
-            spacing=8,
+            spacing=10,
             padding=ft.Padding.symmetric(horizontal=12, vertical=8),
         )
 
         # Inline header instead of page.appbar
         header = ft.Container(
             content=ft.Text(
-                "Saved", color=theme.color("text_primary"), weight=ft.FontWeight.BOLD, size=20
+                "Saved", color=theme.color("text_primary"), weight=ft.FontWeight.BOLD, size=22
             ),
             padding=ft.Padding.symmetric(horizontal=16, vertical=16),
             bgcolor=theme.color("header_bg"),
@@ -45,13 +45,19 @@ class BookmarksView(ft.Column):
                         [
                             ft.Icon(
                                 ft.Icons.BOOKMARK_BORDER,
-                                size=52,
+                                size=56,
                                 color=theme.color("text_muted"),
                             ),
                             ft.Text(
                                 "No saved articles yet.",
                                 color=theme.color("text_muted"),
-                                size=14,
+                                size=16,
+                                weight=ft.FontWeight.W_500,
+                            ),
+                            ft.Text(
+                                "Bookmark articles to read them later.",
+                                color=theme.color("text_muted"),
+                                size=12,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -86,8 +92,8 @@ class BookmarksView(ft.Column):
                             aid
                         ),
                     ),
-                    right=4,
-                    top=4,
+                    right=8,
+                    top=8,
                 ),
             ]
         )

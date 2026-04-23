@@ -50,7 +50,7 @@ def NewsCard(article: Dict, on_tap: Optional[Callable] = None) -> ft.Container:
                 ),
                 ft.Text(
                     article["title"],
-                    size=13,
+                    size=14,
                     color=theme.color("text_primary"),
                     weight=ft.FontWeight.W_600,
                     max_lines=3,
@@ -58,13 +58,19 @@ def NewsCard(article: Dict, on_tap: Optional[Callable] = None) -> ft.Container:
                 ),
                 ft.Text(pub, size=10, color=theme.color("text_muted")),
             ],
-            spacing=4,
+            spacing=6,
         ),
         bgcolor=theme.color("card_bg"),
-        border_radius=8,
-        padding=12,
+        border_radius=12,
+        padding=16,
         on_click=on_tap,
         data=article,
+        shadow=ft.BoxShadow(
+            spread_radius=0,
+            blur_radius=8,
+            color="#00000020" if theme.mode() == "dark" else "#00000010",
+            offset=ft.Offset(0, 2),
+        ),
     )
 
 
@@ -78,8 +84,14 @@ def CategoryChip(label: str, category: str, active: bool, on_tap: Optional[Calla
             weight=ft.FontWeight.W_600,
         ),
         bgcolor=color if active else theme.color("chip_inactive_bg"),
-        border_radius=12,
-        padding=ft.Padding.symmetric(horizontal=12, vertical=4),
+        border_radius=16,
+        padding=ft.Padding.symmetric(horizontal=14, vertical=6),
         on_click=on_tap,
         data=category,
+        shadow=ft.BoxShadow(
+            spread_radius=0,
+            blur_radius=4,
+            color=color + "40" if active else "#00000010",
+            offset=ft.Offset(0, 1),
+        ) if active else None,
     )

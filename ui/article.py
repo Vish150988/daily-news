@@ -16,7 +16,7 @@ class ArticleView(ft.Column):
         self._content = ft.Column(
             scroll=ft.ScrollMode.AUTO,
             expand=True,
-            spacing=12,
+            spacing=16,
         )
 
         self._bookmark_btn = ft.IconButton(
@@ -48,10 +48,10 @@ class ArticleView(ft.Column):
             expand=True,
             controls=[
                 self._header,
-                ft.Divider(color=theme.color("divider")),
+                ft.Divider(color=theme.color("divider"), height=1),
                 ft.Container(
                     content=self._content,
-                    padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+                    padding=ft.Padding.symmetric(horizontal=16, vertical=12),
                     expand=True,
                 ),
             ],
@@ -88,19 +88,22 @@ class ArticleView(ft.Column):
         # while the full text loads in the background.
         excerpt = article.get("excerpt", "").strip() or "Loading article…"
         self._content.controls = [
-            ft.Text(
-                f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
-                size=11,
-                color=color,
-                weight=ft.FontWeight.W_600,
+            ft.Container(
+                content=ft.Text(
+                    f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
+                    size=11,
+                    color=color,
+                    weight=ft.FontWeight.W_600,
+                ),
+                padding=ft.Padding.only(bottom=4),
             ),
             ft.Text(
                 article["title"],
-                size=18,
+                size=20,
                 color=theme.color("text_primary"),
                 weight=ft.FontWeight.BOLD,
             ),
-            ft.Divider(color=theme.color("divider")),
+            ft.Divider(color=theme.color("divider"), height=1),
             ft.Text(excerpt, size=14, color=theme.color("text_secondary"), italic=True),
             ft.Container(
                 content=ft.ProgressRing(color=color, width=24, height=24),
@@ -148,19 +151,22 @@ class ArticleView(ft.Column):
         ]
 
         self._content.controls = [
-            ft.Text(
-                f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
-                size=11,
-                color=color,
-                weight=ft.FontWeight.W_600,
+            ft.Container(
+                content=ft.Text(
+                    f"{category_label(article['category'])} · {article['source']} · {article.get('published_at', '')[:10]}",
+                    size=11,
+                    color=color,
+                    weight=ft.FontWeight.W_600,
+                ),
+                padding=ft.Padding.only(bottom=4),
             ),
             ft.Text(
                 article["title"],
-                size=18,
+                size=20,
                 color=theme.color("text_primary"),
                 weight=ft.FontWeight.BOLD,
             ),
-            ft.Divider(color=theme.color("divider")),
+            ft.Divider(color=theme.color("divider"), height=1),
             *text_controls,
         ]
         self.page.update()
