@@ -1,16 +1,19 @@
+import logging
 import feedparser
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import List, Dict
 from storage import upsert_articles, make_article_id
 
+_MAX_ENTRIES_PER_FEED = 30  # cap per fetch to avoid DB bloat
+
 FEEDS: Dict[str, List[tuple]] = {
     "world": [
-        ("Reuters Top News",      "http://feeds.reuters.com/reuters/topNews"),
-        ("BBC News",              "http://feeds.bbci.co.uk/news/rss.xml"),
+        ("Reuters Top News",      "https://feeds.reuters.com/reuters/topNews"),
+        ("BBC News",              "https://feeds.bbci.co.uk/news/rss.xml"),
         ("New York Times",        "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"),
         ("The Guardian",          "https://www.theguardian.com/world/rss"),
-        ("Al Jazeera",            "http://www.aljazeera.com/xml/rss/all.xml"),
+        ("Al Jazeera",            "https://www.aljazeera.com/xml/rss/all.xml"),
     ],
     "tech": [
         ("TechCrunch",            "https://techcrunch.com/feed/"),
@@ -20,7 +23,7 @@ FEEDS: Dict[str, List[tuple]] = {
     ],
     "data-ai": [
         ("Hacker News",           "https://hnrss.org/frontpage"),
-        ("Ars Technica",          "http://feeds.arstechnica.com/arstechnica/index"),
+        ("Ars Technica",          "https://feeds.arstechnica.com/arstechnica/index"),
         ("KDnuggets",             "https://www.kdnuggets.com/feed"),
         ("VentureBeat",           "https://venturebeat.com/feed/"),
         ("The New Stack",         "https://thenewstack.io/feed/"),
@@ -54,7 +57,7 @@ def _fetch_feed(category: str, source: str, url: str) -> List[Dict]:
         feed = feedparser.parse(url)
         now = datetime.now(timezone.utc).isoformat()
         articles = []
-        for entry in feed.entries[:30]:
+        for entry in feed.entries[:_MAX_ENTRIES_PER_FEED]:
             link = entry.get("link", "")
             if not link:
                 continue
@@ -69,11 +72,13 @@ def _fetch_feed(category: str, source: str, url: str) -> List[Dict]:
                 "fetched_at":   now,
             })
         return articles
-    except Exception:
+    except Exception as exc:
+        logging.warning("_fetch_feed failed for %s (%s): %s", source, url, exc)
         return []
 
 
 def fetch_all_feeds() -> int:
+    """Fetch all 27 feeds in parallel and return the total article count."""
     tasks = [
         (cat, src, url)
         for cat, feeds in FEEDS.items()
@@ -83,7 +88,10 @@ def fetch_all_feeds() -> int:
     with ThreadPoolExecutor(max_workers=10) as ex:
         futures = {ex.submit(_fetch_feed, cat, src, url): (cat, src) for cat, src, url in tasks}
         for future in as_completed(futures):
-            all_articles.extend(future.result())
+            try:
+                all_articles.extend(future.result())
+            except Exception as exc:
+                logging.warning("Feed fetch task failed: %s", exc)
     if all_articles:
         upsert_articles(all_articles)
     return len(all_articles)
