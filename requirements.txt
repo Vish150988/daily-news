@@ -1,2 +1,1 @@
-# Dependencies are vendored in vendor/ for mobile compatibility.
-# Desktop users can manually install: pip install feedparser>=6.0.0
+flet==0.84.0
