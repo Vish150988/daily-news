@@ -42,7 +42,8 @@ jobs:
           flet build apk \
             --project "Daily News" \
             --org com.dailynews \
-            --build-number ${{ github.run_number }}
+            --build-number ${{ github.run_number }} \
+            --yes
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
