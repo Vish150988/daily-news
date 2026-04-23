@@ -68,12 +68,9 @@ def main(page: ft.Page):
         def push_article(article: dict):
             nonlocal _current_article_id
             _current_article_id = article["id"]
-            # Hide nav bar on article page (best effort – some Flet builds ignore visible)
-            nav_bar.visible = False
             show_view(ArticleView(article_id=article["id"], on_back=_go_home))
 
         def _go_home():
-            nav_bar.visible = True
             nav_bar.selected_index = 0
             show_view(home)
 

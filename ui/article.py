@@ -26,25 +26,22 @@ class ArticleView(ft.Column):
 
         # Inline header instead of page.appbar – page.appbar dynamic updates
         # are unreliable on Android packaged builds.
-        # Wrapped in SafeArea so the back button isn't hidden by notches/status bars.
-        self._header = ft.SafeArea(
-            content=ft.Container(
-                content=ft.Row(
-                    [
-                        ft.IconButton(
-                            icon=ft.Icons.ARROW_BACK,
-                            icon_color=theme.color("text_primary"),
-                            on_click=lambda e: on_back() if on_back else None,
-                        ),
-                        ft.Container(expand=True),
-                        self._bookmark_btn,
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                ),
-                padding=ft.Padding.symmetric(horizontal=16, vertical=8),
-                bgcolor=theme.color("header_bg"),
+        self._header = ft.Container(
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color=theme.color("text_primary"),
+                        tooltip="Back",
+                        on_click=lambda e: on_back() if on_back else None,
+                    ),
+                    ft.Container(expand=True),
+                    self._bookmark_btn,
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            minimum=ft.padding.only(top=8),
+            padding=ft.Padding.only(left=16, top=32, right=16, bottom=8),
+            bgcolor=theme.color("header_bg"),
         )
 
         super().__init__(
