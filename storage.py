@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict
 
-DB_PATH = Path.home() / ".daily-news" / "news.db"
+# Use the app directory (next to main.py) so the path is writable on Android
+# where Path.home() resolves to /data and PermissionError is raised.
+DB_PATH = Path(__file__).parent / ".daily-news" / "news.db"
 
 
 def _conn() -> sqlite3.Connection:
