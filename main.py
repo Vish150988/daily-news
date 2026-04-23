@@ -15,35 +15,37 @@ def main(page: ft.Page):
 
     init_db()
 
-    def route_change(e):
-        page.views.clear()
-
-        home = HomeView(
-            on_article_tap=lambda article: page.go(f"/article/{article['id']}"),
-            on_bookmarks_tap=lambda: page.go("/bookmarks"),
-        )
-        page.views.append(home)
-
-        route = page.route
-        if route == "/bookmarks":
-            page.views.append(
-                BookmarksView(
-                    on_article_tap=lambda article: page.go(f"/article/{article['id']}"),
-                )
-            )
-        elif route.startswith("/article/"):
-            article_id = route[len("/article/"):]
-            page.views.append(ArticleView(article_id=article_id))
-
+    def push_view(view: ft.View):
+        page.views.append(view)
         page.update()
+        view.did_mount()
+
+    def push_article(article: dict):
+        push_view(ArticleView(article_id=article["id"]))
+
+    def push_bookmarks():
+        push_view(BookmarksView(
+            on_article_tap=push_article,
+            on_go_home=pop_view,
+        ))
+
+    def pop_view():
+        if len(page.views) > 1:
+            page.views.pop()
+            page.update()
 
     def view_pop(e):
-        page.views.pop()
-        page.update()
+        pop_view()
 
-    page.on_route_change = route_change
     page.on_view_pop = view_pop
-    page.go("/")
+
+    home = HomeView(
+        on_article_tap=push_article,
+        on_bookmarks_tap=push_bookmarks,
+    )
+    page.views.append(home)
+    page.update()
+    home.did_mount()
 
 
 ft.run(main)

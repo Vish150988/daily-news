@@ -7,8 +7,9 @@ from ui.components import NewsCard
 
 
 class BookmarksView(ft.View):
-    def __init__(self, on_article_tap: Callable):
+    def __init__(self, on_article_tap: Callable, on_go_home: Callable = None):
         self._on_article_tap = on_article_tap
+        self._on_go_home = on_go_home
         self._list = ft.ListView(
             expand=True,
             spacing=8,
@@ -33,7 +34,7 @@ class BookmarksView(ft.View):
                     ft.NavigationBarDestination(icon=ft.Icons.BOOKMARK, label="Saved"),
                 ],
                 selected_index=1,
-                on_change=lambda e: self.page.go("/") if e.control.selected_index == 0 else None,
+                on_change=lambda e: self._on_go_home() if e.control.selected_index == 0 and self._on_go_home else None,
             ),
             controls=[self._list],
         )
