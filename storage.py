@@ -8,13 +8,13 @@ DB_PATH = Path.home() / ".daily-news" / "news.db"
 
 
 def _conn() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _conn() as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS articles (
@@ -38,6 +38,8 @@ def make_article_id(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
 
 
+# Upsert with first-write-wins for source and category: these fields are intentionally
+# omitted from the ON CONFLICT UPDATE clause to preserve the original feed provenance.
 def upsert_articles(articles: List[Dict]):
     with _conn() as conn:
         conn.executemany(
