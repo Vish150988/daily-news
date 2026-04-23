@@ -1,0 +1,55 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Python dependencies
+        run: pip install "flet[build]==0.84.0" feedparser trafilatura
+
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
+
+      - name: Verify Flutter setup
+        run: flutter doctor -v
+
+      - name: Build APK
+        run: |
+          flet build apk \
+            --project "Daily News" \
+            --org com.dailynews \
+            --build-number ${{ github.run_number }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-news-apk-${{ github.run_number }}
+          path: build/apk/*.apk
+          if-no-files-found: error
+          retention-days: 30
